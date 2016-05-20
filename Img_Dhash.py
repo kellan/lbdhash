@@ -5,6 +5,7 @@ import sys
 import uuid
 from PIL import Image
 import hashlib
+import pprint
 import dhash
 import exif
 
@@ -25,5 +26,8 @@ def handler(event, context):
     image_dhash = dhash.dhash(image)
     image_sha256 = hashlib.sha256(open(download_path, 'rb').read()).hexdigest()
     exif_data = exif.get_exif_data(image)
-
-    return {'sha256': image_sha256, 'dhash': image_dhash, 'exif': exif_data}
+    taken_date = exif_data.get('DateTime', '')
+    lat, lon = exif.get_lat_lon(exif_data)
+    camera = exif.get_camera(exif_data)
+    return {'sha256': image_sha256, 'dhash': image_dhash,
+        'date_taken':taken_date, 'lat':lat, 'lon':lon, 'camera':camera}

@@ -45,6 +45,12 @@ def _convert_to_degress(value):
 
     return d + (m / 60.0) + (s / 3600.0)
 
+def get_camera(exif_data):
+    make = exif_data.get('Make', '')
+    model = exif_data.get('Model', '')
+    camera = '{} {}'.format(make, model)
+    return camera
+
 def get_lat_lon(exif_data):
     """Returns the latitude and longitude, if available, from the provided exif_data (obtained through get_exif_data above)"""
     lat = None
