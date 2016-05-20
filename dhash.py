@@ -1,5 +1,8 @@
 from PIL import Image
 
+# from http://blog.iconfinder.com/detecting-duplicate-images-using-python/
+#
+
 def dhash(image, hash_size = 8):
         # Grayscale and shrink the image in one step.
         image = image.convert('L').resize(
