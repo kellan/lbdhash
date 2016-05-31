@@ -62,9 +62,14 @@ def hash_photo(bucket, key):
     image = Image.open(download_path)
     image_dhash = dhash.dhash(image)
     image_sha256 = hashlib.sha256(open(download_path, 'rb').read()).hexdigest()
-    exif_data = exif.get_exif_data(image)
-    taken_date = exif_data.get('DateTime', '')
-    lat, lon = exif.get_lat_lon(exif_data)
-    camera = exif.get_camera(exif_data)
-    return {'sha256': image_sha256, 'dhash': image_dhash,
-        'date_taken':taken_date, 'lat':lat, 'lon':lon, 'camera':camera}
+
+    data =  {'sha256': image_sha256, 'dhash': image_dhash, 'format': img.format}
+
+    if img.format == 'JPEG':
+        exif_data = exif.get_exif_data(image)
+        taken_date = exif_data.get('DateTime', '')
+        lat, lon = exif.get_lat_lon(exif_data)
+        camera = exif.get_camera(exif_data)
+        data.update({'date_taken':taken_date, 'lat':lat, 'lon':lon, 'camera':camera})
+
+    return data
