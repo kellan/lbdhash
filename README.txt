@@ -1,19 +1,25 @@
-an aws lambda function for extracting identifying info from photos on aws
+aws lambda create-function --region us-east-1 --function-name Img_DhashPy --zip-file fileb://ImgDhashPy.zip --role arn:aws:iam::407883137925:role/lambda_basic_execution  --handler Img_Dhash.handler --runtime python2.7 --timeout 15 --memory-size 512
 
-calculates sha256, a perceptual hash (dhash), and extracts exif info
+"FunctionArn": "arn:aws:lambda:us-east-1:407883137925:function:Img_DhashPy",
 
-ImgDhashPy.zip contains Pillow compiled for aws lambda and a few other dependencies
+aws lambda create-function --region us-east-1 --function-name Dynamo_PutPy --zip-file fileb://Dynamo_Put.zip --role arn:aws:iam::407883137925:role/lambda_basic_execution  --handler Dynamo_Put.handler --runtime python2.7 --timeout 15 --memory-size 512
 
-# Working with Lambda
+"FunctionArn": "arn:aws:lambda:us-east-1:407883137925:function:Dynamo_PutPy",
 
-to update zip with changes to the labmda function
+create Img_Dhash_in SNS topic
+subscribe Img_Dhash to it
 
-`zip -g ImgDhashPy.zip Img_Dhash.py`
+create Img_Dhash_out
+subscribe dynamo_put to it
 
-to upload zip (the first time)
+create Dynamodb Table, `path_md5` should be partition key
 
-`aws lambda create-function --function-name <name> --zip-file fileb://ImgDhashPy.zip --role arn:aws:iam::407883137925:role/lambda_basic_execution  --handler Img_Dhash.handler --runtime python2.7 --timeout 15 --memory-size 512
 
-to update zip
+update config file
 
-`aws lambda update-function-code --function-name <name> --zip-file fileb://ImgDhashPy.zip`
+re-update the lambdas with new config
+
+aws lambda update-function-code --region us-east-1 --function-name Img_DhashPy --zip-file fileb://ImgDhashPy.zip
+
+
+aws lambda update-function-code --region us-east-1 --function-name Dynamo_PutPy --zip-file fileb://Dynamo_Put.zip
