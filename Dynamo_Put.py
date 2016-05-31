@@ -15,13 +15,13 @@ def handler(event, context):
 
     table = dynamodb.Table(config.dynamo_table)
 
-    key = 's3://{}/{}'.format(event['bucket'], event['object'])
+    s3_path = 's3://{}/{}'.format(event['bucket'], event['key'])
 
-    key_md5 = hashlib.md5(key).hexdigest()
+    key_md5 = hashlib.md5(s3_path).hexdigest()
 
     item = {
-        'uuid': key_md5,
-        'S3_Path': key,
+        'key_md5': key_md5,
+        'S3_Path': s3_path,
         'CreatedAtMs': millis_since_epoch()
     }
     item.update(event)
