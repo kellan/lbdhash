@@ -1,14 +1,11 @@
 from __future__ import print_function
 import boto3
-import uuid
-import logging
-import time
-import hashlib
-import json
+import uuid, logging, hashlib, json, time
+from datetime import datetime
 import config
 
 def handler(event, context):
-    logging.getLogger().setLevel(logging.INFO)
+    #logging.getLogger().setLevel(logging.INFO)
     logging.info('Dynamo_Put.handler')
     logging.info('event {}'.format(event))
 
@@ -32,14 +29,16 @@ def handler(event, context):
         'record_created_ms': millis_since_epoch()
     }
 
-    for floats in ('lat', 'lon'):
-        if message[floats] and isinstance(message[floats], float):
-            message[floats] = int(round(message[floats]*1000))
+    for float_key in ('lat', 'lon'):
+        if float_key in message and isinstance(message[float_key], float):
+            message[float_key] = int(round(message[float_key]*1000))
 
     message['object'] = message.pop('key') # rename, key is confusing in dynamodb land
 
     if 'date_taken' in message:
-        message['date_taken_raw'] = message.pop('date_taken') # rename, TODO parse later
+        message['date_taken_raw'] = message['date_taken']
+        dt = datetime.strptime(message['date_taken_raw'], '%Y:%m:%d %H:%M:%S') #  exif date format
+        message['date_taken'] = dt.strftime("%s") # seconds since epoch
 
 
     item.update(message)
