@@ -1,13 +1,9 @@
 from __future__ import print_function
+
 import boto3
-import os
-import sys
-import uuid
+import os, sys, uuid
 from PIL import Image
-import hashlib
-import pprint
-import logging
-import json
+import hashlib, pprint, logging, json
 
 import dhash
 import exif
@@ -21,7 +17,7 @@ import config
 #
 
 def handler(event, context):
-    logging.getLogger().setLevel(logging.INFO)
+    #logging.getLogger().setLevel(logging.INFO)
     logging.info('Img_Dhash.handler')
     logging.info('event {}'.format(event))
 
@@ -31,7 +27,7 @@ def handler(event, context):
             if 'aws:sns' == record['EventSource']:
                 handle_sns(record['Sns'], context)
             else:
-                logger.info('not an sns event')
+                logger.error('not an sns event')
                 pprint.pprint(event)
     elif 'bucket' in event:
         # invoked directly: aws lambda invoke --function-name Img_DhashPy --region us-west-2 --payload '{"bucket":"kellanio-alestic-lambda-example","key":"jazz-thailand.JPEG"}'
@@ -71,9 +67,12 @@ def hash_photo(bucket, key):
     if image.format == 'JPEG':
         exif_data = exif.get_exif_data(image)
         taken_date = exif_data.get('DateTime', '')
-        lat, lon = exif.get_lat_lon(exif_data)
         camera = exif.get_camera(exif_data)
-        data.update({'date_taken':taken_date, 'lat':lat, 'lon':lon, 'camera':camera})
+        data.update({'date_taken':taken_date, 'camera':camera})
+
+        lat, lon = exif.get_lat_lon(exif_data)
+        if lat and lon:
+            data.update({'lat':lat, 'lon':lon})
 
     logging.info('hash_photo {}'.format(data))
 
