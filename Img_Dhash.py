@@ -17,7 +17,7 @@ import config
 # trigger via SNS with
 #{"default":"SNS requires this",
 #  "bucket":"kellanio-alestic-lambda-example",
-#  "object":"jazz-thailand.JPEG"}
+#  "key":"jazz-thailand.JPEG"}
 #
 
 def handler(event, context):
@@ -39,8 +39,9 @@ def handler(event, context):
 
 def handle_sns(sns_event, context):
     logging.info('handle_sns')
-    bucket, key = sns_event['Message'].split(' ')
-    photo_hash = hash_photo(bucket, key)
+    mesg = json.loads(sns_event['Message'])
+    photo_hash = hash_photo(mesg['bucket'], mesg['key'])
+    mesg.update(photo_hash)
     logging.info('photo_hash {}'.format(photo_hash['dhash']))
 
     sns = boto3.client('sns')
@@ -48,7 +49,7 @@ def handle_sns(sns_event, context):
 
     sns.publish(
         TopicArn=config.output_sns_topic,
-        Message=json.dumps(photo_hash))
+        Message=json.dumps(mesg))
 
 
 def hash_photo(bucket, key):
@@ -63,13 +64,17 @@ def hash_photo(bucket, key):
     image_dhash = dhash.dhash(image)
     image_sha256 = hashlib.sha256(open(download_path, 'rb').read()).hexdigest()
 
-    data =  {'sha256': image_sha256, 'dhash': image_dhash, 'format': img.format}
+    data =  {'sha256': image_sha256,
+        'dhash': image_dhash,
+        'format': image.format}
 
-    if img.format == 'JPEG':
+    if image.format == 'JPEG':
         exif_data = exif.get_exif_data(image)
         taken_date = exif_data.get('DateTime', '')
         lat, lon = exif.get_lat_lon(exif_data)
         camera = exif.get_camera(exif_data)
         data.update({'date_taken':taken_date, 'lat':lat, 'lon':lon, 'camera':camera})
+
+    logging.info('hash_photo {}'.format(data))
 
     return data
