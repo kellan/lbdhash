@@ -19,33 +19,46 @@ def handler(event, context):
         # else called directly
         message = event
 
-    s3_path = 's3://{}/{}'.format(message['bucket'], message['key'])
+    s3_path = '{}/{}'.format(message['bucket'], message['key'])
 
-    key_md5 = hashlib.md5(s3_path).hexdigest()
+    path_md5 = hashlib.md5(s3_path).hexdigest()
 
     item = {
-        'path_md5': key_md5,
         's3_path': s3_path,
-        'record_created_ms': millis_since_epoch()
+        'record_modified_ms': millis_since_epoch()
     }
 
     for float_key in ('lat', 'lon'):
         if float_key in message and isinstance(message[float_key], float):
             message[float_key] = int(round(message[float_key]*1000))
 
-    message['object'] = message.pop('key') # rename, key is confusing in dynamodb land
+    message['object_key'] = message.pop('key') # rename, key is confusing in dynamodb land
 
     if 'date_taken' in message:
         message['date_taken_raw'] = message['date_taken']
         dt = datetime.strptime(message['date_taken_raw'], '%Y:%m:%d %H:%M:%S') #  exif date format
         message['date_taken'] = dt.strftime("%s") # seconds since epoch
-
+        message['month_day'] = dt.strftime("%m-%d") # on this day in history
 
     item.update(message)
 
-    resp = table.put_item(Item=item)
+    #resp = table.put_item(Item=item)
+    update_expression, update_expression_names, update_values = generate_update(item)
+
+    resp = table.update_item(
+        Key={'path_md5':path_md5},
+        UpdateExpression=update_expression,
+        ExpressionAttributeNames=update_expression_names,
+        ExpressionAttributeValues=update_values)
 
     print(resp)
+
+def generate_update(item):
+    update_expression = ["#{}=:{}".format(k,k) for k in item]
+    update_expression = "set " + ', '.join(update_expression)
+    update_expression_names = {"#{}".format(k):k for k in item}
+    update_values = {":{}".format(k):item[k] for k in item}
+    return update_expression, update_expression_names, update_values
 
 def extract_sns_message(event, context):
     for record in event['Records']:
