@@ -27,7 +27,7 @@ def handler(event, context):
             if 'aws:sns' == record['EventSource']:
                 handle_sns(record['Sns'], context)
             else:
-                logger.error('not an sns event')
+                logging.error('not an sns event')
                 pprint.pprint(event)
     elif 'bucket' in event:
         # invoked directly: aws lambda invoke --function-name Img_DhashPy --region us-west-2 --payload '{"bucket":"kellanio-alestic-lambda-example","key":"jazz-thailand.JPEG"}'
@@ -54,26 +54,38 @@ def hash_photo(bucket, key):
     #bucket = 'kellanio-alestic-lambda-example'
     #key = 'jazz-thailand.JPEG'
     download_path = '/tmp/{}{}'.format(uuid.uuid4(), key)
+    data = {}
 
-    s3_client.download_file(bucket, key, download_path)
-    image = Image.open(download_path)
-    image_dhash = dhash.dhash(image)
-    image_sha256 = hashlib.sha256(open(download_path, 'rb').read()).hexdigest()
+    try:
+        s3_client.download_file(bucket, key, download_path)
+    except IOError as err:
+        logging.error("Failed to download image {}/{} with {}").format(bucket, key, err)
+        return
 
-    data =  {'sha256': image_sha256,
-        'dhash': image_dhash,
-        'format': image.format}
+    try:
+        image = Image.open(download_path)
 
-    if image.format == 'JPEG':
-        exif_data = exif.get_exif_data(image)
-        taken_date = exif_data.get('DateTime', '')
-        camera = exif.get_camera(exif_data)
-        data.update({'date_taken':taken_date, 'camera':camera})
+        image_dhash = dhash.dhash(image)
+        image_sha256 = hashlib.sha256(open(download_path, 'rb').read()).hexdigest()
 
-        lat, lon = exif.get_lat_lon(exif_data)
-        if lat and lon:
-            data.update({'lat':lat, 'lon':lon})
+        data =  {'sha256': image_sha256,
+            'dhash': image_dhash,
+            'format': image.format}
 
-    logging.info('hash_photo {}'.format(data))
+        if image.format == 'JPEG':
+            exif_data = exif.get_exif_data(image)
+            taken_date = exif_data.get('DateTime', '')
+            camera = exif.get_camera(exif_data)
+            data.update({'date_taken':taken_date, 'camera':camera})
+
+            lat, lon = exif.get_lat_lon(exif_data)
+            if lat and lon:
+                data.update({'lat':lat, 'lon':lon})
+
+            logging.info('hash_photo {}'.format(data))
+    except IOError as err:
+        logging.warn("Img_Dhash couldn't open image {}/{} with {}".format(bucket, key, err))
+    finally:
+        os.remove(download_path)
 
     return data
