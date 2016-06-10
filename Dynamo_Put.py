@@ -36,7 +36,12 @@ def handler(event, context):
 
     if 'date_taken' in message:
         message['date_taken_raw'] = message['date_taken']
-        dt = datetime.strptime(message['date_taken_raw'], '%Y:%m:%d %H:%M:%S') #  exif date format
+
+        try:
+            dt = datetime.strptime(message['date_taken_raw'], '%Y:%m:%d %H:%M:%S') #  exif date format
+        except ValueError:
+            logging.warning('Dynamo_Put missing time data {}'.format(s3_path))
+
         message['date_taken'] = dt.strftime("%s") # seconds since epoch
         message['month_day'] = dt.strftime("%m-%d") # on this day in history
 
