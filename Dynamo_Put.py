@@ -5,7 +5,7 @@ from datetime import datetime
 import config
 
 def handler(event, context):
-    #logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
     logging.info('Dynamo_Put.handler')
     logging.info('event {}'.format(event))
 
@@ -49,6 +49,9 @@ def handler(event, context):
 
     #resp = table.put_item(Item=item)
     update_expression, update_expression_names, update_values = generate_update(item)
+    logging.info('Key: {}, UpdateExpression: {}, ExpressionAttributeNames: {}, ExpressionAttributeValues:{}'.format(
+        path_md5, update_expression, update_expression_names, update_values
+    ))
 
     resp = table.update_item(
         Key={'path_md5':path_md5},
