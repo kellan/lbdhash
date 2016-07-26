@@ -11,6 +11,7 @@ def handler(event, context):
     logging.getLogger().setLevel(logging.INFO)
     logging.info('On_This_Day.handler')
     logging.info('event {}'.format(event))
+    logging.info('context {}'.format(context))
 
     s3_client = boto3.client('s3')
 
@@ -23,9 +24,16 @@ def handler(event, context):
         # else called directly
         message = event
 
-    resp = table.scan(
-        FilterExpression=Attr('month_day').eq(message['this_day'])
-    )
+    args = {
+        #FilterExpression=Attr('month_day').eq('05-01')
+        #'FilterExpression':'month_day=:md',
+        'KeyConditionExpression':'month_day=:md',
+        'ExpressionAttributeValues':{':md':message['this_day']},
+        'ReturnConsumedCapacity': 'INDEXES',
+        'IndexName': 'month_day-index'
+    }
+
+    resp = table.query(**args)
 
     logging.info(resp)
 
@@ -34,12 +42,13 @@ def handler(event, context):
     if 'Items' in resp:
         for item in resp['Items']:
             url = s3_client.generate_presigned_url('get_object',
-                Params = {'Bucket': item['bucket'], 'Key': item['object_key']}
+                Params = {'Bucket': item['bucket'], 'Key': item['object_key']},
+                ExpiresIn=172800
             )
             item['url_presigned'] = url
             out['Items'].append(item)
 
-    return out
+        return out
 
 
 def extract_sns_message(event, context):
